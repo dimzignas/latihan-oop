@@ -1,3 +1,6 @@
 test line 1
 test line 2
 tambah line ketiga
+ini line 6 (kemana line 4?)
+ini line 7 (kemana line 5?)
+ini line 8
