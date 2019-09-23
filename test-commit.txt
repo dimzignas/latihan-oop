@@ -14,3 +14,6 @@ ini line 8
 >>>>>>> iss01
 lanjut line 13
 lalu line 14
+ditambah lagi line 15
+ditutup line 16
+=== final === line 17 ===
