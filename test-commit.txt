@@ -12,3 +12,5 @@ ini line 8
 === ini line 11 ===
 =======line 12=======
 >>>>>>> iss01
+lanjut line 13
+lalu line 14
