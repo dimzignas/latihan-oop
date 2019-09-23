@@ -6,3 +6,5 @@ ini line 7 (kemana line 5?)
 ini line 8
 + line 9
 + line 10
+=== ini line 11 ===
+=======line 12=======
