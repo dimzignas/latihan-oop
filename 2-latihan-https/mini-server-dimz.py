@@ -79,9 +79,6 @@ class case_directory_index_file(base_case):
 class case_directory_no_index_file(base_case):
     '''Serve listing for a directory without an index.html page.'''
 
-    def index_path(self, handler):
-        return os.path.join(handler.full_path, 'index.html')
-
     def test(self, handler):
         return os.path.isdir(handler.full_path) and \
             not os.path.isfile(self.index_path(handler))
