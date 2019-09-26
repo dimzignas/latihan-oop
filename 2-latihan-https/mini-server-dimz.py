@@ -3,18 +3,17 @@ Code from http://aosabook.org/en/500L/a-simple-web-server.html
 with some modification by dimz
 '''
 
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
 from socketserver import TCPServer
 import os
-# import socket
 import ssl
+import cgi
 import base64
 import json
 from urllib.parse import urlparse, parse_qs
-# import inspect
 
 
-# ------Class Cases------------------------------
+# -----------Class Cases------------
 class base_case(object):
     '''Parent for case handlers.'''
 
@@ -139,8 +138,8 @@ class case_always_fail(base_case):
         raise ServerException("Unknown object '{0}''".format(handler.base_path))
 
 
-# ------Class Error------------------------------
-# ---------https://docs.python.org/3/tutorial/errors.html#tut-userexceptions-------------------------------------------------------
+# -----------Class Error------------
+# ------http://tiny.cc/q3bfdz-------
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
@@ -155,10 +154,10 @@ class ServerException(Error):
 
     def __init__(self, message):
         self.message = message
-# ----------------------------------------------------------------------
+# ----------------------------------
 
 
-# ------Class RequestHandler------------------------------
+# -------Class RequestHandler-------
 class RequestHandler(BaseHTTPRequestHandler):
     '''Handle HTTP requests by returning a 'page'.
         If the requested path maps to a file, that file is served.
@@ -183,8 +182,9 @@ class RequestHandler(BaseHTTPRequestHandler):
     base_path = ''  # simpan path tanpa param dan query
     path_query = ''  # simpan query dalam path
     path_param = ''  # simpan param dalam path
+    postvars = {}  # simpan POST variable
 
-# How to display a directory listing.
+	# How to display a directory listing.
     Listing_Page = ''' \
         <html>
         <body>
@@ -211,35 +211,55 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
 
-            # Figure out what exactly is being requested.
-            this_cwd = os.getcwd()
-            # this_cwd = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            # this_cwd = "C:\\Users\\creator\\myPy\\OOP\\2-latihan-https"
-
-            # self.path masih ada param dan query string-nya
-            self.set_base_path(urlparse(self.path).path)
-            self.set_full_path(os.path.normpath(this_cwd + self.base_path))
+            self._prepare_handle_request()
             self._parse_GET()
 
-            # Figure out how to handle it (Authorization Header).
-            for authCase in self.AuthCases:
-                aCaseHandler = authCase()
-                if aCaseHandler.test(self):
-                    aCaseHandler.act(self)
-                    break
-
-            # If Authorization has been confirmed (True), figure out what next
-            if self.is_auth:
-                # Figure out how to handle it (file or directory).
-                for fileCase in self.FileCases:
-                    fCaseHandler = fileCase()
-                    if fCaseHandler.test(self):
-                        fCaseHandler.act(self)
-                        break
+            self._handle_request()
 
         # Handle errors.
         except Exception as msg:
             self.handle_error(msg, 'json')
+
+    # Classify and handle a POST request.
+    def do_POST(self):
+        try:
+
+            self._prepare_handle_request()
+            self._parse_GET()
+            self._parse_POST()
+
+            self._handle_request()
+
+        # Handle errors.
+        except Exception as msg:
+            self.handle_error(msg, 'json')
+
+    # Mempersiapkan sebelum handle GET/POST request _dimz_
+    def _prepare_handle_request(self):
+        # Figure out what exactly is being requested.
+        this_cwd = os.getcwd()
+
+        # self.path masih ada param dan query string-nya
+        self.set_base_path(urlparse(self.path).path)
+        self.set_full_path(os.path.normpath(this_cwd + self.base_path))
+
+    # Menentukan case untuk handle request
+    def _handle_request(self):
+        # Figure out how to handle it (Authorization Header).
+        for authCase in self.AuthCases:
+            aCaseHandler = authCase()
+            if aCaseHandler.test(self):
+                aCaseHandler.act(self)
+                break
+
+        # If Authorization has been confirmed (True), figure out what next
+        if self.is_auth:
+            # Figure out how to handle it (file or directory).
+            for fileCase in self.FileCases:
+                fCaseHandler = fileCase()
+                if fCaseHandler.test(self):
+                    fCaseHandler.act(self)
+                    break
 
     # Create list of a directory
     def list_dir(self, path):
@@ -296,11 +316,11 @@ class RequestHandler(BaseHTTPRequestHandler):
     def set_full_path(self, full_path):
         self.full_path = full_path
 
-    # set connection status
+    # set connection status _dimz_
     def set_status(self, status):
         self.status = status
 
-    # set flag as True if Authorization confirmed
+    # set flag as True if Authorization confirmed _dimz_
     def set_is_auth(self, is_auth):
         self.is_auth = is_auth
 
@@ -308,6 +328,21 @@ class RequestHandler(BaseHTTPRequestHandler):
     def _parse_GET(self):
         self.path_query = parse_qs(urlparse(self.path).query)
         return self.path_query
+
+    # parsing POST data _dimz-modified_
+    def _parse_POST(self):
+        ctype, pdict = cgi.parse_header(self.headers.get('Content-Type'))
+        length = int(self.headers.get('Content-Length'))
+        if ctype == 'multipart/form-data':
+            pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
+            pdict['CONTENT-LENGTH'] = length
+            self.postvars = cgi.parse_multipart(self.rfile, pdict)
+        elif ctype == 'application/x-www-form-urlencoded':
+            self.postvars = parse_qs(
+                self.rfile.read(length), keep_blank_values=1)
+        else:
+            self.postvars = {}
+        return self.postvars
 
 
 class MyServer(TCPServer):
@@ -328,25 +363,6 @@ if __name__ == '__main__':
     port = 8060
     serverAddress = ('', port)
 
-    '''
-    # dengan HTTPServer
-    with HTTPServer(serverAddress, RequestHandler) as server:
-        server.socket = ssl.wrap_socket(server.socket,
-            # keyfile=os.getcwd() + "/key.pem",
-            # certfile=os.getcwd() + "/cert.pem",
-            certfile=os.getcwd() + "/server.pem",
-            server_side=True)
-        print("serving at port", port)
-        server.serve_forever()
-
-    # dengan socketserver.TCPServer
-    with TCPServer(serverAddress, RequestHandler) as server:
-        server.socket = ssl.wrap_socket(server.socket,
-            certfile=os.getcwd() + "/server.pem",
-            server_side=True)
-        print("serving at port", port)
-        server.serve_forever()
-    '''
     # dengan MyServer
     with MyServer(serverAddress, RequestHandler) as server:
         server.socket = ssl.wrap_socket(server.socket,
@@ -355,5 +371,3 @@ if __name__ == '__main__':
         server.set_auth('demo', 'demo')
         print("serving at port", port)
         server.serve_forever()
-    # dz = RequestHandler
-    # dz.do_GET
