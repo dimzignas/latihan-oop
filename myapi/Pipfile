@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+flask = "==1.1.1"
+pymongo = "==3.9.0"
+scrapy-splash = "==0.7.2"
+scrapy = "==1.8.0"
+requests = "==2.22.0"
+passlib = "==1.7.2"
+connexion = {extras = ["swagger-ui"],version = "*"}
+flask-marshmallow = "==0.10.1"
+marshmallow = "==3.3.0"
+
+[requires]
+python_version = "3.7"

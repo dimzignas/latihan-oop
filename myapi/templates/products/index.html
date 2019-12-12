@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header>
+    <h1>Products</h1>
+</header>
+<section>
+    <div class="list-group">
+        {% for dt in data %}
+        <div class="list-group-item">
+            <p >
+                <img src="{{ dt.thumb }}"><br/>
+                <span>Nama produk: {{ dt.nama_produk }}</span><br/>
+                <span>Harga: {{ dt.harga }}</span><br/>
+                <span>Sumber: {{ dt.sumber }}</span><br/>
+                <span>Tanggal Crawl: {{ dt.tgl_crawl }}</span>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    <a class="btn btn-primary mt-3" href="{{ url_for('alerts.create_alert') }}">
+        Create new
+    </a>
+</section>
+{% endblock %}
